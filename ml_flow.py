@@ -5,6 +5,7 @@ import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 from main import X_train, X_test, y_train, y_test
 from sklearn.neighbors import KNeighborsClassifier
+from urllib.parse import urlparse
 def train_and_evaluate_with_mlflow(model, param_grid, X_train, X_test, y_train, y_test, model_name, **kwargs):
     """
     Train a machine learning model using GridSearchCV and evaluate its performance,
@@ -56,6 +57,23 @@ def train_and_evaluate_with_mlflow(model, param_grid, X_train, X_test, y_train, 
 
         # Log the best model in MLflow
         mlflow.sklearn.log_model(best_model, model_name)
+        # For remote server only (Dagshub)
+        remote_server_uri = "https://dagshub.com/Danjari/Dropout.mlflow"
+        mlflow.set_tracking_uri(remote_server_uri)
+
+
+
+        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
+
+        # Model registry does not work with file store
+        if tracking_url_type_store != "file":
+            # Register the model
+            # There are other ways to use the Model Registry, which depends on the use case,
+            # please refer to the doc for more information:
+            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
+            mlflow.sklearn.log_model(best_model, "model", registered_model_name=model_name)
+        else:
+            mlflow.sklearn.log_model(best_model, "model")
 
         return best_model
 
